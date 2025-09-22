@@ -25,21 +25,24 @@ mongoose.connection.once("open", () => {
 
 const app = express();
 
+// ✅ Flexible CORS config: allows localhost & any Vercel deployment (*.vercel.app)
+const allowedOrigins = [
+  "http://localhost:3000",
+  /\.vercel\.app$/                // regex allows ALL Vercel preview & production domains
+];
+
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://campus-conecto.vercel.app"
-  ],
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow non-browser clients like Postman/axios
+    if (allowedOrigins.some(o => (o instanceof RegExp ? o.test(origin) : o === origin))) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true
 }));
 
 const server = http.createServer(app);
-
-// ✅ Allowed frontend origins
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://campus-conecto.vercel.app"
-];
 
 // 👉 socket.io setup
 const io = new Server(server, {
@@ -57,7 +60,6 @@ app.use((req, res, next) => {
 });
 
 // Middlewares
-app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json({ limit: "5mb" }));
@@ -123,4 +125,3 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () => 
   console.log(`✅ Server running on port ${PORT}`)
 );
-
