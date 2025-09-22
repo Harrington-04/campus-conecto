@@ -28,26 +28,35 @@ const app = express();
 // ✅ Flexible CORS config: allows localhost & any Vercel deployment (*.vercel.app)
 const allowedOrigins = [
   "http://localhost:3000",
-  /\.vercel\.app$/                // regex allows ALL Vercel preview & production domains
+  /\.vercel\.app$/   // regex allows ALL Vercel preview & production domains
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow non-browser clients like Postman/axios
+    console.log("🌍 Incoming origin:", origin); // << helpful debug
+    if (!origin) return callback(null, true); // allow non-browser clients like Postman
     if (allowedOrigins.some(o => (o instanceof RegExp ? o.test(origin) : o === origin))) {
       return callback(null, true);
     }
-    return callback(new Error("Not allowed by CORS"));
+    return callback(new Error("Not allowed by Express CORS"));
   },
   credentials: true
 }));
 
+// HTTP server for Socket.io
 const server = http.createServer(app);
 
-// 👉 socket.io setup
+// ✅ Socket.io setup with same CORS rules
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      console.log("🔌 Socket.io origin trying:", origin);
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.some(o => (o instanceof RegExp ? o.test(origin) : o === origin))) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by Socket.io CORS"));
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
