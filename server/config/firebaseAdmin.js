@@ -1,16 +1,14 @@
 import admin from "firebase-admin";
-import { readFileSync } from "fs";
 
-// You need a service account key from your Firebase project
-// Download from Firebase Console → Project settings → Service accounts → Generate new private key
-const serviceAccount = JSON.parse(
-  readFileSync(new URL("./serviceAccountKey.json", import.meta.url))
-);
-
+// Initialize with env vars (no JSON file)
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    storageBucket: "campus-conecto.appspot.com" // your bucket name
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),  // Replace \n with actual newlines
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+    }),
+    storageBucket: "campus-conecto.appspot.com"  // Your bucket
   });
 }
 
