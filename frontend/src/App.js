@@ -13,6 +13,7 @@ import Layout from "./pages/Layoutt"; // ✅ check spelling
 import "./index.css";
 
 function App() {
+  console.log("API URL 👉", process.env.REACT_APP_API_URL);
   const isAuthenticated = () => {
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     return Boolean(token);
