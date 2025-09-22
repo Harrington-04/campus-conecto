@@ -29,7 +29,7 @@ const server = http.createServer(app);
 // ✅ Allowed frontend origins
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://<your-frontend>.vercel.app"
+  "https://campus-conecto.vercel.app"
 ];
 
 // 👉 socket.io setup
