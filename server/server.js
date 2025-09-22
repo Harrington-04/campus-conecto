@@ -24,6 +24,15 @@ mongoose.connection.once("open", () => {
 });
 
 const app = express();
+
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://campus-conecto.vercel.app"
+  ],
+  credentials: true
+}));
+
 const server = http.createServer(app);
 
 // ✅ Allowed frontend origins
@@ -114,3 +123,4 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () => 
   console.log(`✅ Server running on port ${PORT}`)
 );
+
