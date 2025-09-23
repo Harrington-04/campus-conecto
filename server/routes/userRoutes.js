@@ -71,9 +71,14 @@ router.post(
       });
 
       const saved = await newUser.save();
-      await sendWelcomeEmail(saved.email, saved.fullName);
+      try {
+        await sendWelcomeEmail(saved.email, saved.fullName);
+      } catch (err) {
+        console.error("❌ Welcome email failed:", err.message);
+        // important: do not throw, still return success
+      }
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: "User registered successfully",
         data: {

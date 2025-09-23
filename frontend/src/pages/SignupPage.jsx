@@ -200,7 +200,13 @@ export default function SignupPage() {
                 </div>
                 
                 {statusMessage && <p className="text-center text-sm font-semibold p-2 bg-gray-200 border-2 border-black">{statusMessage}</p>}
-                <button type="submit" className="w-full py-3 bg-blue-600 text-white font-bold uppercase tracking-wider border-2 border-black hover:bg-blue-700 transition-colors">Register</button>
+                <button
+                  type="submit"
+                  disabled={statusMessage === "Registering..."}
+                  className="w-full py-3 bg-blue-600 text-white font-bold uppercase tracking-wider border-2 border-black hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Register
+                </button>
               </form>
 
               {/* Right Column: The Description */}
