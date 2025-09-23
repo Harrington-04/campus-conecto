@@ -5,6 +5,7 @@ import cloudinary from "../config/cloudinaryConfig.js";
 import streamifier from "streamifier";
 import axios from "axios";   // ✅ for proxying files
 import path from "path";     // ✅ for safe filename extraction
+import mime from "mime-types"; // ✅ for extension inference from Content-Type
 
 const router = express.Router();
 
@@ -180,9 +181,12 @@ router.get(
       const hasExt = !!path.extname(fileName);
       if (!hasExt) {
         let ext = "";
-        // 1) Try from Content-Type
+        // 1) Try from Content-Type: prefer mime-types, then fallback map
         if (contentTypeHeader) {
-          if (extFromCTMap[contentTypeHeader]) {
+          const mimeExt = mime.extension(contentTypeHeader);
+          if (mimeExt) {
+            ext = `.${mimeExt}`;
+          } else if (extFromCTMap[contentTypeHeader]) {
             ext = extFromCTMap[contentTypeHeader];
           } else if (contentTypeHeader.startsWith("image/")) {
             const sub = contentTypeHeader.split("/")[1];
