@@ -12,15 +12,12 @@ const getFileNameFromUrl = (url) => {
   }
 };
 
-// ✅ Updated universal download function (uses backend proxy + auth header)
+// ✅ Updated universal download function
 const triggerDownload = async (url, name) => {
-  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-  const proxyUrl = `${process.env.REACT_APP_API_URL}/api/upload/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || getFileNameFromUrl(url))}`;
+  const proxyUrl = `/api/upload/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`;
 
   try {
-    const res = await fetch(proxyUrl, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const res = await fetch(proxyUrl);
     if (!res.ok) throw new Error("Failed to download");
 
     const blob = await res.blob();
