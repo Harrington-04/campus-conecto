@@ -154,14 +154,63 @@ router.get(
       // Stream from Cloudinary/source
       const response = await axios({ url: finalUrl, method: "GET", responseType: "stream" });
 
+      // --- Ensure filename has proper extension ---
       const fallbackName = path.basename((finalUrl || "").split("?")[0]) || "download";
-      const fileName = name || fallbackName;
+      let fileName = (name || fallbackName || "download").trim();
 
-      if (response.headers["content-type"]) {
-        res.setHeader("Content-Type", response.headers["content-type"]);
+      const contentTypeHeader = (response.headers["content-type"] || "").split(";")[0].trim();
+      const extFromCTMap = {
+        "application/pdf": ".pdf",
+        "application/msword": ".doc",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+        "application/vnd.ms-powerpoint": ".ppt",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
+        "application/vnd.ms-excel": ".xls",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+        "application/zip": ".zip",
+        "application/x-zip-compressed": ".zip",
+        "text/plain": ".txt",
+        "text/csv": ".csv",
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+      };
+
+      const hasExt = !!path.extname(fileName);
+      if (!hasExt) {
+        let ext = "";
+        // 1) Try from Content-Type
+        if (contentTypeHeader) {
+          if (extFromCTMap[contentTypeHeader]) {
+            ext = extFromCTMap[contentTypeHeader];
+          } else if (contentTypeHeader.startsWith("image/")) {
+            const sub = contentTypeHeader.split("/")[1];
+            if (sub) {
+              const normalized = sub.toLowerCase() === "jpeg" ? "jpg" : sub.toLowerCase();
+              ext = `.${normalized}`;
+            }
+          }
+        }
+        // 2) Fallback from URL path
+        if (!ext) {
+          try {
+            const u = new URL(finalUrl);
+            const urlExt = path.extname(u.pathname);
+            if (urlExt) ext = urlExt;
+          } catch {}
+        }
+        // 3) If still missing and it's clearly a pdf case we rewrote, enforce .pdf
+        if (!ext && isPdf) ext = ".pdf";
+
+        if (ext && !fileName.toLowerCase().endsWith(ext.toLowerCase())) {
+          fileName += ext;
+        }
       }
-      // Content-Disposition for download with provided filename
+
+      // Set headers and stream
       res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      res.setHeader("Content-Type", response.headers["content-type"] || "application/octet-stream");
       if (response.headers["content-length"]) {
         res.setHeader("Content-Length", response.headers["content-length"]);
       }
