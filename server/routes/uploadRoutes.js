@@ -93,7 +93,7 @@ router.post(
         {
           folder: `resources/${safeEmail}`,
           public_id: sanitize(req.file.originalname.split(".")[0]),
-          resource_type: "auto",
+          resource_type: req.file.mimetype === "application/pdf" ? "raw" : "auto",
         },
         (error, result) => {
           if (error) {
@@ -128,25 +128,50 @@ router.post(
   }
 );
 
-// ✅ Proxy download route (fixes PDF 401s)
-router.get("/download", protect, async (req, res) => {
-  try {
-    const { url, name } = req.query;
-    if (!url) return res.status(400).send("Missing url query param");
+// ✅ Proxy download route (fixes PDF 401s, supports token in query)
+router.get(
+  "/download",
+  // Inject Authorization header from ?token= if missing
+  (req, _res, next) => {
+    if (!req.headers.authorization && req.query?.token) {
+      req.headers.authorization = `Bearer ${req.query.token}`;
+    }
+    next();
+  },
+  protect,
+  async (req, res) => {
+    try {
+      const { url, name } = req.query;
+      if (!url) return res.status(400).send("Missing url query param");
 
-    // call cloudinary (or source URL)
-    const response = await axios.get(url, { responseType: "arraybuffer" });
+      // Backward-compat: if a PDF is requested from image delivery, switch to raw
+      let finalUrl = url;
+      const isPdf = /\.pdf(\?.*)?$/i.test(url);
+      if (isPdf && url.includes("/image/upload/")) {
+        finalUrl = url.replace("/image/upload/", "/raw/upload/");
+      }
 
-    const fileName = name || path.basename(url.split("?")[0]);
+      // Stream from Cloudinary/source
+      const response = await axios({ url: finalUrl, method: "GET", responseType: "stream" });
 
-    res.setHeader("Content-Type", response.headers["content-type"] || "application/octet-stream");
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      const fallbackName = path.basename((finalUrl || "").split("?")[0]) || "download";
+      const fileName = name || fallbackName;
 
-    res.send(response.data);
-  } catch (err) {
-    console.error("❌ Proxy download error:", err.message);
-    res.status(500).json({ success: false, message: "Failed to proxy download" });
+      if (response.headers["content-type"]) {
+        res.setHeader("Content-Type", response.headers["content-type"]);
+      }
+      // Content-Disposition for download with provided filename
+      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      if (response.headers["content-length"]) {
+        res.setHeader("Content-Length", response.headers["content-length"]);
+      }
+
+      response.data.pipe(res);
+    } catch (err) {
+      console.error("❌ Proxy download error:", err?.message || err);
+      res.status(500).json({ success: false, message: "Failed to proxy download" });
+    }
   }
-});
+);
 
 export default router;
