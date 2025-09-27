@@ -24,6 +24,7 @@ mongoose.connection.once("open", () => {
 });
 
 const app = express();
+app.set("trust proxy", 1);
 
 // ✅ Flexible CORS config: allows localhost & any Vercel deployment (*.vercel.app)
 const allowedOrigins = [
