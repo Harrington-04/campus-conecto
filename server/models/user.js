@@ -20,6 +20,9 @@ const userSchema = new mongoose.Schema(
     
     profileCreated: { type: Boolean, default: false },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    // Password reset (token-based) — optional
+    passwordResetToken: { type: String, default: null },
+    passwordResetExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -8,6 +8,7 @@ import { body, validationResult } from "express-validator";
 import User from "../models/user.js";
 import OTP from "../models/otp.js";
 import { sendWelcomeEmail, sendPasswordResetOTP } from "../utils/emailsender.js";
+import { sendResetEmail } from "../utils/sendEmail.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -90,6 +91,44 @@ router.post(
       });
     } catch (err) {
       console.error("❌ Register error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+);
+
+// ------------------------------------
+// PASSWORD RESET VIA TOKEN (Resend email link)
+// ------------------------------------
+router.post(
+  "/password/reset-by-token",
+  validate([
+    body("email").isEmail().withMessage("Valid email is required"),
+    body("token").isLength({ min: 10 }).withMessage("Valid token is required"),
+    body("newPassword").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+  ]),
+  async (req, res) => {
+    try {
+      const { email, token, newPassword } = req.body;
+
+      const user = await User.findOne({
+        email,
+        passwordResetToken: token,
+        passwordResetExpires: { $gt: new Date() },
+      });
+
+      if (!user) {
+        return res.status(400).json({ success: false, message: "Invalid or expired token" });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      user.passwordHash = await bcrypt.hash(newPassword, salt);
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      await user.save();
+
+      res.json({ success: true, message: "Password reset successful" });
+    } catch (err) {
+      console.error("❌ Reset password (token) error:", err);
       res.status(500).json({ success: false, message: err.message });
     }
   }
@@ -319,22 +358,19 @@ router.post(
       const user = await User.findOne({ email });
       if (!user) return res.status(404).json({ success: false, message: "No user found with this email" });
 
-      await OTP.deleteMany({ email });
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      await OTP.create({ email, otp: otpCode });
+      // Generate a secure reset token valid for 15 minutes
+      const token = crypto.randomBytes(32).toString("hex");
+      user.passwordResetToken = token;
+      user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000);
+      await user.save();
 
-      // Dev-mode fallback
-      if (process.env.DEV_LOG_OTP === 'true') {
-        console.log(`🔐 DEV OTP for ${email}: ${otpCode}`);
-        return res.json({ success: true, message: "OTP generated (DEV mode)", dev: true });
+      try {
+        await sendResetEmail(user.email, token);
+        return res.json({ success: true, message: "Password reset email sent" });
+      } catch (e) {
+        console.error("❌ Failed to send reset email:", e);
+        return res.status(500).json({ success: false, message: "Failed to send reset email" });
       }
-
-      const sent = await sendPasswordResetOTP(email, otpCode);
-      if (!sent) {
-        return res.status(500).json({ success: false, message: "Failed to send OTP email" });
-      }
-
-      res.json({ success: true, message: "OTP sent to email" });
     } catch (err) {
       console.error("❌ Legacy forgot-password OTP error:", err);
       res.status(500).json({ success: false, message: err.message });

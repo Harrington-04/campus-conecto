@@ -13,7 +13,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit for docs/resources
 });
-
+ 
 const sanitize = (s = "") => s.replace(/[^a-zA-Z0-9._-]/g, "_");
 
 // ✅ Upload profile images
