@@ -24,25 +24,34 @@ mongoose.connection.once("open", () => {
 });
 
 const app = express();
+
+// ✅ Needed for Render (trust proxy headers like X-Forwarded-For so rate-limit works)
 app.set("trust proxy", 1);
 
-// ✅ Flexible CORS config: allows localhost & any Vercel deployment (*.vercel.app)
+// 🔒 Allowed origins: localhost, Vercel, Render frontend
 const allowedOrigins = [
   "http://localhost:3000",
-  /\.vercel\.app$/   // regex allows ALL Vercel preview & production domains
+  /\.vercel\.app$/,      // all Vercel deployments
+  /\.onrender\.com$/     // allow your frontend if hosted on Render
 ];
 
+// ✅ CORS middleware
 app.use(cors({
   origin: (origin, callback) => {
-    console.log("🌍 Incoming origin:", origin); // << helpful debug
-    if (!origin) return callback(null, true); // allow non-browser clients like Postman
+    console.log("🌍 Incoming origin:", origin);
+    if (!origin) return callback(null, true); // allow Postman, curl, etc.
     if (allowedOrigins.some(o => (o instanceof RegExp ? o.test(origin) : o === origin))) {
       return callback(null, true);
     }
     return callback(new Error("Not allowed by Express CORS"));
   },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+
+// ✅ Handle preflight (HTTP OPTIONS) requests globally
+app.options("*", cors());
 
 // HTTP server for Socket.io
 const server = http.createServer(app);
@@ -75,13 +84,16 @@ app.use(morgan("dev"));
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting
+// ✅ Don’t rate-limit preflight OPTIONS requests
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { success: false, message: "Too many requests, try later." },
 });
-app.use("/api/", apiLimiter);
+app.use("/api", (req, res, next) => {
+  if (req.method === "OPTIONS") return res.sendStatus(200);
+  return apiLimiter(req, res, next);
+});
 
 // Debug logs only in dev
 if (process.env.NODE_ENV === "development") {
@@ -132,6 +144,6 @@ io.on("connection", (socket) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, "0.0.0.0", () => 
+server.listen(PORT, "0.0.0.0", () =>
   console.log(`✅ Server running on port ${PORT}`)
 );
