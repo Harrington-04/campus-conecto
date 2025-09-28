@@ -225,6 +225,12 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
+      {/* Footer - bottom left, above animated background */}
+      <div className="absolute bottom-4 left-4 z-10">
+        <p className="text-xs sm:text-sm text-black dark:text-gray-300">
+          © 2025 Harish Harikannan · R.K. Talreja College.
+        </p>
+      </div>
     </div>
   );
 }
