@@ -174,6 +174,12 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
+      {/* Footer - bottom center, above animated background */}
+      <div className="absolute bottom-4 inset-x-0 z-10 flex justify-center">
+        <p className="text-xs sm:text-sm text-black dark:text-gray-300">
+          © 2024 Harish Harikannan · R.K. Talreja College.
+        </p>
+      </div>
     </div>
   );
 }
