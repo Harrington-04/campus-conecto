@@ -44,6 +44,8 @@ export default function ProfileCreationPage() {
     return () => { cancelAnimationFrame(animationFrameId); window.removeEventListener('resize', handleResize); };
   }, []);
 
+  
+
   // --- All original handler functions are preserved ---
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

@@ -86,6 +86,8 @@ export default function SignupPage() {
     return () => { cancelAnimationFrame(animationFrameId); window.removeEventListener('resize', handleResize); };
   }, []);
 
+  
+
   const getYearOptions = () => {
     if (formData.qualification?.includes("Bachelor") || formData.qualification?.includes("Master")) return yearOptions.College;
     return yearOptions.Other;

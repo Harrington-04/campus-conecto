@@ -120,6 +120,8 @@ export default function LoginPage() {
     return () => { cancelAnimationFrame(animationFrameId); window.removeEventListener('resize', handleResize); };
   }, []);
 
+  
+
   return (
     <div className="relative h-screen w-screen bg-gray-50 dark:bg-gray-950 overflow-hidden font-sans">
       {/* Theme Toggle - top right */}
