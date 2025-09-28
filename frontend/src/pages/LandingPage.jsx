@@ -174,8 +174,8 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
-      {/* Footer - bottom center, above animated background */}
-      <div className="absolute bottom-4 inset-x-0 z-10 flex justify-center">
+      {/* Footer - bottom left, above animated background */}
+      <div className="absolute bottom-4 left-4 z-10">
         <p className="text-xs sm:text-sm text-black dark:text-gray-300">
           © 2024 Harish Harikannan · R.K. Talreja College.
         </p>
